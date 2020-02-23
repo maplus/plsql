@@ -1,27 +1,45 @@
 /********************
  * Reference cursor *
  ********************/
-
--- Weak reference
-set serveroutput on
-declare
-    TYPE ref_cur is ref cursor;
-    v_cur ref_cur;
-    v_animal animal%rowtype;
-begin
-    -- Whole record.
-    open v_cur for select * from animal order by animal_name;
-    fetch v_cur into v_animal;
-    close v_cur;
-    
-    -- Single column.
-    open v_cur for select animal_name from animal order by animal_name;
-    fetch v_cur into v_animal.animal_name;
-    dbms_output.put_line(v_animal.animal_name);
-    close v_cur;
-end;
+-- Dynamic ref cursor.
+DECLARE
+    TYPE ref_cur_t IS REF CURSOR;
+    l_cur ref_cur_t;
+    l_sql CONSTANT VARCHAR2(100) := q'/SELECT object_type, COUNT(*) recs
+    FROM user_objects GROUP BY object_type ORDER BY object_type/';
+    l_object_type user_objects.object_type%TYPE;
+    l_recs INT;
+BEGIN
+    OPEN l_cur FOR l_sql;
+    LOOP
+        FETCH l_cur INTO l_object_type, l_recs;
+        EXIT WHEN l_cur%NOTFOUND;
+        
+        dbms_output.put_line(l_object_type || ': ' || l_recs);
+    END LOOP;
+    CLOSE l_cur;
+END;
 /
 
+-- Weak reference
+SET SERVEROUTPUT ON
+DECLARE
+    TYPE ref_cur IS REF CURSOR;
+    v_cur ref_cur;
+    v_animal animal%ROWTYPE;
+BEGIN
+    -- Whole record.
+    OPEN v_cur FOR SELECT * FROM animal ORDER BY animal_name;
+    FETCH v_cur INTO v_animal;
+    CLOSE v_cur;
+    
+    -- Single column.
+    OPEN v_cur FOR SELECT animal_name FROM animal ORDER BY animal_name;
+    FETCH v_cur INTO v_animal.animal_name;
+    dbms_output.put_line(v_animal.animal_name);
+    CLOSE v_cur;
+END;
+/
 
 -- Strong reference
 set serveroutput on 
@@ -36,7 +54,6 @@ begin
     close v_cur;
 end;
 /
-
 
 -- Passed as argument to procedure
 set serveroutput on 
@@ -61,7 +78,6 @@ begin
 end;
 /
 
-
 -- With parameter
 set serveroutput on
 DECLARE
@@ -74,5 +90,4 @@ BEGIN
     close v_cur;
     dbms_output.put_line(v_animal.animal_name);
 END;
-/ 
-
+/
