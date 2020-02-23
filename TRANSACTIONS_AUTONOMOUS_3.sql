@@ -1,0 +1,42 @@
+DECLARE
+    l_txt CONSTANT VARCHAR2(30) := 'A';
+BEGIN
+    BEGIN EXECUTE IMMEDIATE 'DROP TABLE TEST_AUTOTRAN'; EXCEPTION WHEN OTHERS THEN NULL; END;
+    EXECUTE IMMEDIATE 'CREATE TABLE test_autotran(txt VARCHAR2(30))';
+
+    DECLARE
+        PRAGMA AUTONOMOUS_TRANSACTION;
+    BEGIN
+        EXECUTE IMMEDIATE 'INSERT INTO test_autotran VALUES(:1)' USING l_txt;
+        COMMIT;
+    END;
+    
+    ROLLBACK;
+END;
+
+-- ORA-06550: line 8, column 16:
+-- PLS-00710: Pragma AUTONOMOUS_TRANSACTION cannot be specified here
+
+DECLARE
+    l_txt CONSTANT VARCHAR2(30) := 'A';
+    
+    PROCEDURE txt_p(p_txt VARCHAR2) IS
+        PRAGMA AUTONOMOUS_TRANSACTION;
+    BEGIN
+        EXECUTE IMMEDIATE 'INSERT INTO test_autotran VALUES(:1)' USING p_txt;
+        COMMIT; -- Needed! Otherwise: ORA-06519
+    END txt_p;
+BEGIN    
+    BEGIN EXECUTE IMMEDIATE 'DROP TABLE TEST_AUTOTRAN'; EXCEPTION WHEN OTHERS THEN NULL; END;
+    EXECUTE IMMEDIATE 'CREATE TABLE test_autotran(txt VARCHAR2(30))';
+    
+    txt_p(l_txt);
+    
+    ROLLBACK;
+END;
+
+--ORA-06519: active autonomous transaction detected and rolled back
+--ORA-06512: at line 8
+--ORA-06512: at line 13
+
+SELECT * FROM TEST_AUTOTRAN;
